@@ -11,6 +11,8 @@ int main(int argc, char **argv)
     // Création des dossiers nécessaires
 
     nob_mkdir_if_not_exists("src");
+    nob_mkdir_if_not_exists("lib");
+    nob_mkdir_if_not_exists("include");
 
 
     printf("----------\n");
@@ -28,11 +30,12 @@ int main(int argc, char **argv)
         nob_cmd_append(&cmd, "-Wall", "-Wextra");
         #if C99_IMPLEMENTATION
         nob_cmd_append(&cmd, "-std=c99", "-pedantic", "-march=native");
+        nob_cmd_append(&cmd, "-I./include",  "-L./lib");
         #endif
         #if OPTIMIZATION
         nob_cmd_append(&cmd, "-O3", "-fomit-frame-pointer", "-funroll-loops");
         #endif
-        nob_cmd_append(&cmd, "./src/main.c", "./src/model.c", "./src/view.c");
+        nob_cmd_append(&cmd, "./src/main.c");
         nob_cmd_append(&cmd, "-o", "./main");
         nob_cmd_append(&cmd, "-lraylib", "-lopengl32", "-lgdi32", "-lwinmm", "-lws2_32");
         // in a cmd : gcc -Wall -Wextra -O3 -I./include -L./lib ./src/main.c -o ./build/game -lraylib -lenet -lopengl32 -lgdi32 -lwinmm -lws2_32
