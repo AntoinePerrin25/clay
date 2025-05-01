@@ -1,6 +1,6 @@
 #define CLAY_IMPLEMENTATION
-#include "clay/clay.h"
-#include "clay/clay_renderer_raylib.c"
+#include <clay/clay.h>
+#include <clay/clay_renderer_raylib.c>
 
 
 
@@ -9,6 +9,9 @@ const uint32_t FONT_ID_BODY_24 = 0;
 const uint32_t FONT_ID_BODY_16 = 1;
 #define COLOR_ORANGE (Clay_Color) {225, 138, 50, 255}
 #define COLOR_BLUE (Clay_Color) {111, 173, 162, 255}
+Clay_LayoutConfig dropdownTextItemLayout = { .padding = {8, 8, 4, 4} };
+Clay_TextElementConfig dropdownTextElementConfig = { .fontSize = 24, .textColor = {255,255,255,255} };
+Clay_TextElementConfig headerTextConfig = { .fontId = FONT_ID_BODY_16, .fontSize = 16, .textColor = {0,0,0,255} };
 
 Texture2D profilePicture;
 #define RAYLIB_VECTOR2_TO_CLAY_VECTOR2(vector) (Clay_Vector2) { .x = vector.x, .y = vector.y }
@@ -26,18 +29,82 @@ ScrollbarData scrollbarData = {0};
 bool debugEnabled = false;
 
 
+typedef struct MenuItem
+{
+    char* label;
+    void (*callback)(void);
+} MenuItem;
+
+MenuItem menuItems[4] = {
+    {"File", NULL},
+    {"Affichage", NULL},
+    {"Options", NULL},
+    {"Copy", NULL}
+};
+
+
+
+Clay_ElementDeclaration HeaderButtonStyle(bool hovered) {
+    return (Clay_ElementDeclaration) {
+        .layout = {.padding = {16, 16, 8, 8}},
+        .backgroundColor = hovered ? COLOR_ORANGE : COLOR_BLUE,
+    };
+}
+
+void RenderHeaderButton(Clay_String text) {
+    CLAY(HeaderButtonStyle(Clay_Hovered())) {
+        CLAY_TEXT(text, CLAY_TEXT_CONFIG(headerTextConfig));
+    }
+}
+
+void DropDownMenu(void)
+{
+    CLAY({ .layout = dropdownTextItemLayout, .backgroundColor = {180, 180, 180, 255} }) {
+        CLAY_TEXT(CLAY_STRING("Fichier"), &dropdownTextElementConfig);
+        CLAY_TEXT(CLAY_STRING("Affichage"), &dropdownTextElementConfig);
+        CLAY_TEXT(CLAY_STRING("Options"), &dropdownTextElementConfig);
+        CLAY_TEXT(CLAY_STRING("Options2"), &dropdownTextElementConfig);
+    }
+}
 
 
 
 Clay_RenderCommandArray CreateLayout(void) {
     Clay_BeginLayout();
+    DropDownMenu();
+    /*
     CLAY({ .id = CLAY_ID("OuterContainer"),
-           .layout = {  .sizing = {.width = CLAY_SIZING_GROW(0),
-                                   .height = CLAY_SIZING_GROW(0) },
-                        .padding = { 16, 16, 16, 16 },
-                        .childGap = 16 },
-            .backgroundColor = {200, 200, 200, 255} }) {}
+    .layout = {  .sizing = {.width = CLAY_SIZING_GROW(0),
+    .height = CLAY_SIZING_GROW(0) },
+    .padding = { 16, 16, 16, 16 },
+    .childGap = 16,
+    .layoutDirection = CLAY_TOP_TO_BOTTOM
+},
+.backgroundColor = {200, 200, 200, 255} })
+{
+    CLAY({
+        .id = CLAY_ID("Tabs"),
+        .layout = {.sizing = {.height = CLAY_SIZING_FIXED((int)(0.10f* GetScreenHeight())),
+        .width = CLAY_SIZING_GROW(0)}},
+        .backgroundColor = {0, 0, 0, 255}
+    }){
+        /*
+        RenderHeaderButton(CLAY_STRING("Test"));
+        RenderHeaderButton(CLAY_STRING("Test2"));
+        RenderHeaderButton(CLAY_STRING("Test3"));
         
+        *
+    }
+    CLAY({
+        .id = CLAY_ID("MainContent"),
+        .layout = {.sizing = {.height = CLAY_SIZING_FIXED((int)(0.90f* GetScreenHeight())),
+            .width = CLAY_SIZING_GROW(0)}},
+            .backgroundColor = {160, 160, 160, 255}
+        }){
+        }
+    }
+    
+    */
     return Clay_EndLayout();
 }
 
@@ -59,7 +126,7 @@ void UpdateDrawFrame(Font* fonts)
     Vector2 mouseWheelDelta = GetMouseWheelMoveV();
     float mouseWheelX = mouseWheelDelta.x;
     float mouseWheelY = mouseWheelDelta.y;
-
+    
     if (IsKeyPressed(KEY_D)) {
         debugEnabled = !debugEnabled;
         Clay_SetDebugModeEnabled(debugEnabled);
@@ -93,10 +160,11 @@ void UpdateDrawFrame(Font* fonts)
             }
         }
     }
-
+    
     Clay_UpdateScrollContainers(true, (Clay_Vector2) {mouseWheelX, mouseWheelY}, GetFrameTime());
     // Generate the auto layout for rendering
     double currentTime = GetTime();
+    printf("UpdateDraw Called");
     Clay_RenderCommandArray renderCommands = CreateLayout();
     printf("layout time: %f microseconds\n", (GetTime() - currentTime) * 1000 * 1000);
     // RENDERING ---------------------------------
@@ -110,6 +178,35 @@ void UpdateDrawFrame(Font* fonts)
     //----------------------------------------------------------------------------------
 }
 
+Vector2 PreviousMousePosition = {.x = -20000, .y= -20000};
+
+bool MouseMoved(void)
+{
+    Vector2 mousePosition = GetMousePosition();
+    
+    if(PreviousMousePosition.x != mousePosition.x || PreviousMousePosition.y != mousePosition.y)
+    {
+        PreviousMousePosition.x = mousePosition.x;
+        PreviousMousePosition.y = mousePosition.y;
+        return true;
+    }
+    return false;
+}
+
+#include <time.h>
+time_t previousUpdateTime = 0;
+bool AfterXSeconds(time_t seconds)
+{
+    time_t currentTime = time(NULL);
+    if (currentTime - previousUpdateTime >= seconds) {
+        previousUpdateTime = currentTime;
+        printf("After 5s");
+        return true;
+    }
+    return false;
+}
+
+bool constantReload = false;
 
 int main(void) {
     uint64_t totalMemorySize = Clay_MinMemorySize();
@@ -136,6 +233,15 @@ int main(void) {
             clayMemory = Clay_CreateArenaWithCapacityAndMemory(totalMemorySize, malloc(totalMemorySize));
             Clay_Initialize(clayMemory, (Clay_Dimensions) { (float)GetScreenWidth(), (float)GetScreenHeight() }, (Clay_ErrorHandler) { HandleClayErrors, 0 });
             reinitializeClay = false;
+        }
+
+        if(AfterXSeconds(2) || MouseMoved() || constantReload)
+        {
+            SetTargetFPS(60);
+        }
+        else
+        {
+            SetTargetFPS(5);
         }
         UpdateDrawFrame(fonts);
     }
