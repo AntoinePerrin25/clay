@@ -1,6 +1,7 @@
 #define CLAY_IMPLEMENTATION
 #include "clay/clay.h"
 #include "clay/clay_renderer_raylib.c"
+#include "main.h"
 
 const uint32_t FONT_ID_BODY_24 = 0;
 const uint32_t FONT_ID_BODY_16 = 1;
@@ -19,20 +20,6 @@ void HandleHeaderButtonInteraction(Clay_ElementId elementId, Clay_PointerData po
     }
 }
 
-Clay_ElementDeclaration HeaderButtonStyle(bool hovered) {
-    return (Clay_ElementDeclaration) {
-        .layout = {.padding = {16, 16, 8, 8}},
-        .backgroundColor = hovered ? COLOR_ORANGE : COLOR_BLUE,
-    };
-}
-
-// Examples of re-usable "Components"
-void RenderHeaderButton(Clay_String text) {
-    CLAY(HeaderButtonStyle(Clay_Hovered())) {
-        CLAY_TEXT(text, CLAY_TEXT_CONFIG(headerTextConfig));
-    }
-}
-
 Clay_LayoutConfig dropdownTextItemLayout = { .padding = {8, 8, 4, 4} };
 Clay_TextElementConfig dropdownTextElementConfig = { .fontSize = 24, .textColor = {255,255,255,255} };
 
@@ -46,6 +33,50 @@ void RenderDropdownTextItem(int index) {
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 
 
+
+void HeaderLayout(float resY, float resX)
+{
+    CLAY({.id = CLAY_ID("Header"),
+          .layout = {.sizing = {.width = CLAY_SIZING_GROW(0),
+                                .height = CLAY_SIZING_FIXED(resY * 0.1)},
+                     .padding = {resX * 0.02, resX * 0.02, resY * 0.02, resY * 0.02},
+                     .childGap = resX * 0.02},
+          .backgroundColor = {0, 0, 0, 255}})
+    {
+        CLAY({.id = CLAY_ID("HeaderButton_Fichier"),
+              .layout = {.sizing = {.width = CLAY_SIZING_FIXED(resX * 0.1),
+                                    .height = CLAY_SIZING_FIXED(resY * 0.06)},
+                         .padding = {8, 8, 8, 8},
+                         .childGap = 8,
+                         .childAlignment = {CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_CENTER}},
+              .backgroundColor = Clay_PointerOver(Clay__HashString(CLAY_STRING("HeaderButton_Fichier"), 0, 0)) ? COLOR_ORANGE : COLOR_BLUE})
+        {
+            CLAY_TEXT(CLAY_STRING("Fichier"), CLAY_TEXT_CONFIG({.fontSize = MIN(resX * 0.08, resY * 0.035), .textColor = {255, 255, 255, 255}}));
+        }
+        CLAY({.id = CLAY_ID("HeaderButton_Affichage"),
+              .layout = {.sizing = {.width = CLAY_SIZING_FIXED(resX * 0.1),
+                                    .height = CLAY_SIZING_FIXED(resY * 0.06)},
+                         .padding = {8, 8, 8, 8},
+                         .childGap = 8,
+                         .childAlignment = {CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_CENTER}},
+              .backgroundColor = Clay_PointerOver(Clay__HashString(CLAY_STRING("HeaderButton_Affichage"), 0, 0)) ? COLOR_ORANGE : COLOR_BLUE})
+        {
+            CLAY_TEXT(CLAY_STRING("Affichage"), CLAY_TEXT_CONFIG({.fontSize = MIN(resX * 0.08, resY * 0.035), .textColor = {255, 255, 255, 255}}));
+        }
+        CLAY({.id = CLAY_ID("HeaderButton_Options"),
+              .layout = {.sizing = {.width = CLAY_SIZING_FIXED(resX * 0.1),
+                                    .height = CLAY_SIZING_FIXED(resY * 0.06)},
+                         .padding = {8, 8, 8, 8},
+                         .childGap = 8,
+                         .childAlignment = {CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_CENTER}},
+              .backgroundColor = Clay_PointerOver(Clay__HashString(CLAY_STRING("HeaderButton_Options"), 0, 0)) ? COLOR_ORANGE : COLOR_BLUE})
+        {
+            CLAY_TEXT(CLAY_STRING("Options"), CLAY_TEXT_CONFIG({.fontSize = MIN(resX * 0.08, resY * 0.035), .textColor = {255, 255, 255, 255}}));
+        }
+    }
+}
+
+
 Clay_RenderCommandArray CreateLayout(void) {
     // Header on 10% height from top
     // Sidebar on 20% width from left and under header
@@ -55,53 +86,18 @@ Clay_RenderCommandArray CreateLayout(void) {
     Clay_BeginLayout();
     CLAY({ .id = CLAY_ID("OuterContainer"),
            .layout = {  .sizing = {.width = CLAY_SIZING_GROW(0),
-                                   .height = CLAY_SIZING_GROW(0) }
+                                   .height = CLAY_SIZING_GROW(0) },
+                        .layoutDirection = CLAY_TOP_TO_BOTTOM
                     },
             .backgroundColor = {200, 200, 200, 255} })
                     
             {
-                CLAY({.id = CLAY_ID("Header"),
-                      .layout = { .sizing = { .width = CLAY_SIZING_GROW(0),
-                                              .height = CLAY_SIZING_FIXED(resY * 0.1) },
-                                  .padding = { resX*0.02, resX*0.02, resY*0.02, resY*0.02 },
-                                  .childGap = resX*0.02 },
-                      .backgroundColor = {0, 0, 0, 255} })
-                {
-                    CLAY({ .id = CLAY_ID("HeaderButton_Fichier"),
-                           .layout = { .sizing = { .width = CLAY_SIZING_FIXED(resX*0.1),
-                                                   .height = CLAY_SIZING_FIXED(resY*0.06) },
-                                       .padding = { 8, 8, 8, 8 },
-                                       .childGap = 8,
-                                       .childAlignment = { CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_CENTER }},
-                           .backgroundColor = Clay_PointerOver(Clay__HashString(CLAY_STRING("HeaderButton_Fichier"), 0, 0)) ? COLOR_ORANGE : COLOR_BLUE })
-                    {
-                        CLAY_TEXT(CLAY_STRING("Fichier"), CLAY_TEXT_CONFIG({ .fontSize = MIN(resX*0.08, resY*0.035), .textColor = {255, 255, 255, 255} }));
-                    }
-                    CLAY({ .id = CLAY_ID("HeaderButton_Affichage"),
-                           .layout = { .sizing = { .width = CLAY_SIZING_FIXED(resX*0.1),
-                                                   .height = CLAY_SIZING_FIXED(resY*0.06) },
-                                       .padding = { 8, 8, 8, 8 },
-                                       .childGap = 8,
-                                       .childAlignment = { CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_CENTER }},
-                           .backgroundColor = Clay_PointerOver(Clay__HashString(CLAY_STRING("HeaderButton_Affichage"), 0, 0)) ? COLOR_ORANGE : COLOR_BLUE })
-                    {
-                        CLAY_TEXT(CLAY_STRING("Affichage"), CLAY_TEXT_CONFIG({ .fontSize = MIN(resX*0.08, resY*0.035), .textColor = {255, 255, 255, 255} }));
-                    }
-                    CLAY({ .id = CLAY_ID("HeaderButton_Options"),
-                           .layout = { .sizing = { .width = CLAY_SIZING_FIXED(resX*0.1),
-                                                   .height = CLAY_SIZING_FIXED(resY*0.06) },
-                                       .padding = { 8, 8, 8, 8 },
-                                       .childGap = 8,
-                                       .childAlignment = { CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_CENTER }},
-                           .backgroundColor = Clay_PointerOver(Clay__HashString(CLAY_STRING("HeaderButton_Options"), 0, 0)) ? COLOR_ORANGE : COLOR_BLUE })
-                    {
-                        CLAY_TEXT(CLAY_STRING("Options"), CLAY_TEXT_CONFIG({ .fontSize = MIN(resX*0.08, resY*0.035), .textColor = {255, 255, 255, 255} }));
-                    }
-                }
+                HeaderLayout(resY, resX);
             }
         
     return Clay_EndLayout();
 }
+
 
 typedef struct
 {
